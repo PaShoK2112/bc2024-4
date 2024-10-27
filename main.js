@@ -70,6 +70,17 @@ const server = http.createServer(async (req, res) => {
             }
             break;
 
+        case 'DELETE':
+            try {
+                await fs.unlink(imagePath);
+                res.writeHead(200, { 'Content-Type': 'text/plain' });
+                res.end('Image deleted');
+            } catch (error) {
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Image not found');
+            }
+            break;
+
         default:
             res.writeHead(405, { 'Content-Type': 'text/plain' });
             res.end('Method not allowed');
