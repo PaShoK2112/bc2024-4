@@ -40,6 +40,36 @@ const server = http.createServer(async (req, res) => {
             }
             break;
 
+        case 'PUT':
+            try {
+                const data = await new Promise((resolve, reject) => {
+                    const chunks = [];
+                    req.on('data', chunk => chunks.push(chunk));
+                    req.on('end', () => resolve(Buffer.concat(chunks)));
+                    req.on('error', reject);
+                });
+
+                if (data.length > 0) {
+                    await fs.writeFile(imagePath, data);
+                    res.writeHead(201, { 'Content-Type': 'text/plain' });
+                    res.end('Image saved');
+                } else {
+                    const response = await superagent.get(`https://http.cat/${httpCode}`).buffer(true);
+                    if (response.type === 'image/jpeg') {
+                        await fs.writeFile(imagePath, response.body);
+                        res.writeHead(201, { 'Content-Type': 'image/jpeg' });
+                        res.end(response.body);
+                    } else {
+                        throw new Error('Invalid image type');
+                    }
+                }
+            } catch (error) {
+                console.error('Error saving image:', error);
+                res.writeHead(500, { 'Content-Type': 'text/plain' });
+                res.end('Error saving image');
+            }
+            break;
+
         default:
             res.writeHead(405, { 'Content-Type': 'text/plain' });
             res.end('Method not allowed');
