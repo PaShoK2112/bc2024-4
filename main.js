@@ -13,6 +13,38 @@ program
 const options = program.opts();
 
 const server = http.createServer(async (req, res) => {
+    const urlParts = req.url.split('/');
+    const httpCode = urlParts[1];
+    const imagePath = path.join(options.cache, `${httpCode}.jpg`);
+
+    switch (req.method) {
+        case 'GET':
+            try {
+                const image = await fs.readFile(imagePath);
+                res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+                res.end(image);
+            } catch (error) {
+                try {
+                    const response = await superagent.get(`https://http.cat/${httpCode}`).buffer(true);
+                    if (response.type === 'image/jpeg') {
+                        await fs.writeFile(imagePath, response.body);
+                        res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+                        res.end(response.body);
+                    } else {
+                        throw new Error('Invalid image type');
+                    }
+                } catch (err) {
+                    res.writeHead(404, { 'Content-Type': 'text/plain' });
+                    res.end('Not found');
+                }
+            }
+            break;
+
+        default:
+            res.writeHead(405, { 'Content-Type': 'text/plain' });
+            res.end('Method not allowed');
+            break;
+    }
 });
 
 server.listen(options.port, options.host, () => {
